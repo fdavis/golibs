@@ -6,16 +6,16 @@ import (
 )
 
 func CloseIssue(repo, number string) error {
-	resp, err := http.NewRequest("PATCH", CloseIssuesURL+
-		"/"+repo+"/issues/"+number+"?state=closed")
+	req, err := http.NewRequest("PATCH", CloseIssuesURL+
+		"/"+repo+"/issues/"+number+"?state=closed", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req.Header.Set(
 		"Accept", "application/vnd.github.v3.text-match+json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	//!-
 	// For long-term stability, instead of http.Get, use the
@@ -35,11 +35,13 @@ func CloseIssue(repo, number string) error {
 	// (Chapter 5 presents 'defer', which makes this simpler.)
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("close issue %s failed: %s", number, resp.Status)
+		return fmt.Errorf("close issue %s failed: %s", number, resp.Status)
 	}
+	fmt.Println(resp.StatusCode)
+	fmt.Println(resp.Body)
 
 	resp.Body.Close()
-	return &result, nil
+	return nil
 }
 
 //!-
