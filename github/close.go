@@ -2,15 +2,23 @@ package github
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
-func CloseIssue(repo, number string) error {
+const closeJson string = "{\"state\": \"closed\"}"
+
+func CloseIssue(repo, number, oauthToken string) error {
+	closeJsonReader := strings.NewReader(closeJson)
 	req, err := http.NewRequest("PATCH", CloseIssuesURL+
-		"/"+repo+"/issues/"+number+"?state=closed", nil)
+		repo+"/issues/"+number, closeJsonReader)
+	// get var only works for search, not edit +"?state=closed",
 	if err != nil {
 		return err
 	}
+	req.Header.Set(
+		"Authorization", "token "+oauthToken)
 	req.Header.Set(
 		"Accept", "application/vnd.github.v3.text-match+json")
 	resp, err := http.DefaultClient.Do(req)
@@ -34,8 +42,11 @@ func CloseIssue(repo, number string) error {
 	// We must close resp.Body on all execution paths.
 	// (Chapter 5 presents 'defer', which makes this simpler.)
 	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		respBody := string(bodyBytes[:])
 		resp.Body.Close()
-		return fmt.Errorf("close issue %s failed: %s", number, resp.Status)
+		return fmt.Errorf("close issue %s failed: %s\nrequest url: %v\n%s",
+			number, resp.Status, req.URL, respBody)
 	}
 	fmt.Println(resp.StatusCode)
 	fmt.Println(resp.Body)
