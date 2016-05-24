@@ -18,7 +18,7 @@ func (issues IssuesSearchResult) Len() int {
 }
 
 func (issues IssuesSearchResult) Less(i, j int) bool {
-	return issues.Items[i].CreatedAt.Before(issues.Items[j].CreatedAt)
+	return issues.Items[i].CreatedAt.Before(*issues.Items[j].CreatedAt)
 }
 
 func (issues IssuesSearchResult) Swap(i, j int) {

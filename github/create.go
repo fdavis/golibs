@@ -1,19 +1,23 @@
 package github
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
-const closeJson string = "{\"state\": \"closed\"}"
-
-func CloseIssue(repo, number, oauthToken string) error {
-	closeJsonReader := strings.NewReader(closeJson)
-	req, err := http.NewRequest("PATCH", EditIssuesURL+
-		repo+"/issues/"+number, closeJsonReader)
-	// get var only works for search, not edit +"?state=closed",
+func CreateIssue(repo, oauthToken string) error {
+	title, body := editIssue("", "")
+	newIssue := Issue{Title: title, Body: body}
+	// FIXME: json encode title/body strings
+	createJson, _ := json.Marshal(newIssue)
+	createJsonReader := strings.NewReader(string(createJson[:]))
+	//fmt.Printf("url params: %s\n", EditIssuesURL+repo+"/issues")
+	//fmt.Printf("json params: %s\n", createJson)
+	req, err := http.NewRequest("POST", EditIssuesURL+
+		repo+"/issues", createJsonReader)
 	if err != nil {
 		return err
 	}
@@ -41,12 +45,14 @@ func CloseIssue(repo, number, oauthToken string) error {
 
 	// We must close resp.Body on all execution paths.
 	// (Chapter 5 presents 'defer', which makes this simpler.)
-	if resp.StatusCode != http.StatusOK {
+
+	// 201 is github created
+	if resp.StatusCode != 201 {
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 		respBody := string(bodyBytes[:])
 		resp.Body.Close()
-		return fmt.Errorf("close issue %s failed: %s\nrequest url: %v\n%s",
-			number, resp.Status, req.URL, respBody)
+		return fmt.Errorf("create issue failed: %s\nrequest url: %v\n%s",
+			resp.Status, req.URL, respBody)
 	}
 	//fmt.Println(resp.StatusCode)
 	//fmt.Println(resp.Body)
