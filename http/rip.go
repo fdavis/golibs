@@ -7,34 +7,33 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type RipSequence struct {
 	DestinationDirectory string
 	URLTemplate          string
 	Min, Max             int
+	Sleep                int
 }
 
 func GetSequence(r RipSequence) error {
-	ch := make(chan string)
 	var url string
 	if err := os.MkdirAll(r.DestinationDirectory, os.ModeDir|0755); err != nil {
 		return fmt.Errorf("Fatal error: cannot create destination directory %s\n", r.DestinationDirectory)
 	}
 	for seqNum := r.Min; seqNum <= r.Max; seqNum++ {
 		url = fmt.Sprintf(r.URLTemplate, seqNum)
-		go download(url, r.DestinationDirectory, seqNum, ch)
-	}
-	for reqs := r.Min; reqs <= r.Max; reqs++ {
-		_ = <-ch
+		download(url, r.DestinationDirectory, seqNum)
+		time.Sleep(time.Duration(r.Sleep) * time.Millisecond)
 	}
 	return nil
 }
 
-func download(url, dest string, num int, ch chan<- string) {
+func download(url, dest string, num int) {
 	resp, err := http.Get(url)
 	if err != nil {
-		ch <- fmt.Sprint(err)
+		fmt.Sprint(err)
 		return
 	}
 
@@ -43,7 +42,7 @@ func download(url, dest string, num int, ch chan<- string) {
 
 	outf, err := os.Create(filePath)
 	if err != nil {
-		ch <- fmt.Sprint(err)
+		fmt.Sprint(err)
 		return
 	}
 
@@ -52,8 +51,7 @@ func download(url, dest string, num int, ch chan<- string) {
 
 	resp.Body.Close()
 	if err != nil {
-		ch <- fmt.Sprintf("while reading %s: %v", url, err)
+		fmt.Sprintf("while reading %s: %v", url, err)
 		return
 	}
-	ch <- ""
 }
